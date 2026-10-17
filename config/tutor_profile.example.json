@@ -1,0 +1,11 @@
+{
+  "gender": "",
+  "academic_stage": "",
+  "university": "",
+  "university_aliases": [],
+  "university_tiers": {
+    "211": null,
+    "985": null
+  },
+  "teaching_experience_levels": []
+}

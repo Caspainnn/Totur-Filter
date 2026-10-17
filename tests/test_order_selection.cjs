@@ -1,0 +1,16 @@
+const fs=require('fs'),vm=require('vm'),assert=require('assert');
+const source=fs.readFileSync('src/report_workspace.js','utf8');
+const start=source.indexOf('function nextOrderKey('),end=source.indexOf('\nfunction text(',start);
+const next=vm.runInNewContext(source.slice(start,end)+';nextOrderKey;');
+assert.equal(next(['1','2','3'],'2',['1','3']),'3','Delete/feedback must advance');
+assert.equal(next(['1','2','3'],'2',['1','3']),'3','Shortlist action must advance while retaining original row');
+assert.equal(next(['3','1','2'],'1',['3','2']),'2','Use displayed sorting');
+assert.equal(next(['1','2','3'],'3',['1','2']),'2','Last row falls back to previous');
+assert.equal(next(['2'],'2',[]),undefined,'Empty list has no selected card');
+console.log('Order selection: next after removal/shortlisting, displayed order, last and empty cases passed');
+const windowStart=source.indexOf('function withinMessageWindow('),windowEnd=source.indexOf('\nfunction render(',windowStart);
+const within=vm.runInNewContext(source.slice(windowStart,windowEnd)+';withinMessageWindow;');
+assert.equal(within(100000-86400,1,100000),true);
+assert.equal(within(100000-86401,1,100000),false);
+assert.equal(within(100000-2*86400,3,100000),true);
+assert.equal(within(100000-6*86400,7,100000),true);

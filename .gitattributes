@@ -1,0 +1,4 @@
+* text=auto eol=lf
+vendor/wechat_db.py -text
+vendor/LICENSE -text
+vendor/PROVENANCE.json -text

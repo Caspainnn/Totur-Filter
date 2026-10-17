@@ -1,0 +1,4 @@
+interface:
+  display_name: "家教筛客"
+  short_description: "按本地偏好筛选白名单微信群家教订单，查询公共交通并生成深色报告"
+  default_prompt: "使用 $wechat-tutor-filter 运行家教筛客，更新报告并说明值得关注的候选。"

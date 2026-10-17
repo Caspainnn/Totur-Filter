@@ -1,0 +1,8 @@
+{
+  "grade_stages": {
+    "preschool": ["幼教", "幼儿园", "学前"],
+    "primary": ["小学"],
+    "junior": ["初中"],
+    "senior": ["高中", "普高"]
+  }
+}

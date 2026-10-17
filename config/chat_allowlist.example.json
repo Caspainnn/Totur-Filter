@@ -1,0 +1,8 @@
+{
+  "allowed_group_names": [],
+  "require_unique_exact_match": true,
+  "allow_private_chats": false,
+  "upload_chat_content": false,
+  "persist_database_keys": false,
+  "log_message_content": false
+}

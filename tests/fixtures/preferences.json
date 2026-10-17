@@ -1,0 +1,106 @@
+{
+  "project_name": "家教筛客",
+  "closed_order_ids": [],
+  "timezone": "Asia/Shanghai",
+  "subjects": {
+    "accepted_categories": [
+      "小学全科",
+      "初中理科"
+    ],
+    "primary_academic_subjects": [
+      "数学",
+      "语文",
+      "英语",
+      "科学",
+      "物理",
+      "化学",
+      "生物",
+      "历史",
+      "地理",
+      "政治"
+    ],
+    "science_subjects": [
+      "数学",
+      "物理",
+      "化学",
+      "生物",
+      "科学"
+    ],
+    "primary_all_subjects_only": true,
+    "mixed_subject_requirements": "needs_confirmation"
+  },
+  "grades": {
+    "minimum": "小学一年级",
+    "maximum": "初中一年级",
+    "accepted": [
+      "小学一年级",
+      "小学二年级",
+      "小学三年级",
+      "小学四年级",
+      "小学五年级",
+      "小学六年级",
+      "初中一年级"
+    ]
+  },
+  "pay": {
+    "minimum_hourly_cny": 100,
+    "ambiguous_unit": "needs_confirmation",
+    "range_crossing_minimum": "accept_if_maximum_meets_minimum"
+  },
+  "commute": {
+    "origin": "示例地铁站",
+    "city": "北京",
+    "maximum_one_way_minutes": 60,
+    "transport_mode": "public_transit",
+    "automatic_query_enabled": true,
+    "map_provider": "amap",
+    "include_walking_and_transfers": true,
+    "unknown_destination_or_duration": "needs_confirmation"
+  },
+  "availability": {
+    "unspecified_class_time": "accept_as_negotiable",
+    "weekdays": {
+      "days": [
+        1,
+        2,
+        4
+      ],
+      "start": "17:00",
+      "end": null,
+      "start_means": "class_start_time"
+    },
+    "full_day_weekdays": {
+      "days": [
+        3,
+        5
+      ],
+      "all_day": true
+    },
+    "weekends": {
+      "days": [
+        6,
+        7
+      ],
+      "all_day": true
+    },
+    "maximum_weekly_teaching_hours": null,
+    "maximum_weekly_teaching_hours_status": "not_provided",
+    "travel_before_class_must_be_considered": true
+  },
+  "other_requirements": [],
+  "tutor_profile_required": true,
+  "location_blacklist": [
+    "门头沟区",
+    "房山区",
+    "通州区",
+    "顺义区",
+    "大兴区",
+    "延庆区",
+    "怀柔区",
+    "密云区",
+    "平谷区"
+  ],
+  "preferred_address_keywords": [],
+  "pending_female_keyword_rejection": false,
+  "missing_information_policy": "needs_confirmation"
+}
