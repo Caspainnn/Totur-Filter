@@ -333,7 +333,8 @@ def render_report(orders, metadata):
         cards = []
         sort_key = (lambda o: candidate_priority(o, metadata.get('preferred_address_keywords', []))) if status in ('recommended', 'needs_confirmation') else lambda o: (max(s['timestamp'] for s in o['sources']),)
         for order in sorted(matches, key=sort_key, reverse=True):
-            sources = '<br>'.join(e(s['group_name']) + ' · ' + e(date_text(s['timestamp'])) for s in order['sources'])
+            latest_source = max(order['sources'], key=lambda source: source['timestamp'])
+            sources = e(latest_source['group_name']) + ' · ' + e(date_text(latest_source['timestamp']))
             fields = json.dumps(order['fields'], ensure_ascii=False, indent=2)
             reasons = '；'.join(order['reasons'])
             if order['status'] == 'closed':
