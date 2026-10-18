@@ -51,6 +51,24 @@ function mergeSavedSettings(existing) {
   return {version: 2, closed_order_keys: [...new Set([...existing.closed_order_keys, ...saved])].sort(),
     rejection_feedback: [...mergedFeedback.values()], preference_overrides: overrides};
 }
+const localSaveToken = document.querySelector?.('meta[name="tutor-local-token"]')?.content;
+let saveInProgress = false;
+async function localSettings(method, payload) {
+  let response;
+  try {
+    response = await fetch('/api/settings', {method, headers: {'X-Tutor-Token': localSaveToken, 'Content-Type': 'application/json'},
+      ...(payload ? {body: JSON.stringify(payload)} : {})});
+  } catch {
+    const error = new Error('Service unavailable'); error.userMessage = '本机保存服务未连接，未保存。请让 Agent 重新打开本地报告。'; throw error;
+  }
+  const data = await response.json();
+  if (!response.ok) {
+    const error = new Error('Local save rejected');
+    error.userMessage = response.status === 409 ? '设置文件已变化或内容无效，未覆盖。请重新加载最新设置后再保存。' : '本机保存失败，未写入设置，请检查服务与设置内容。';
+    throw error;
+  }
+  return data;
+}
 let saveDirectory;
 const directoryDb = typeof indexedDB === 'undefined' ? Promise.resolve(null) : new Promise(resolve => {
   const request = indexedDB.open('wechat-tutor-filter-settings', 1);
@@ -101,11 +119,18 @@ counts();
 document.addEventListener('click', async event => {
   if (event.target.closest('#save-closed')) {
     const feedback = document.getElementById('close-feedback');
+    if (saveInProgress) return;
+    saveInProgress = true;
     try {
       if (window.tutorPreferenceEditor) userState.preference_overrides = window.tutorPreferenceEditor.collect();
       persistUserState();
       let content = JSON.stringify({version: 2, closed_order_keys: [...saved].sort(), rejection_feedback: userState.rejection_feedback, preference_overrides: userState.preference_overrides}, null, 2);
-      if (window.showSaveFilePicker) {
+      if (localSaveToken || window.showSaveFilePicker) {
+        if (localSaveToken) {
+          const existing = await localSettings('GET');
+          const result = await localSettings('POST', {revision: existing.revision, settings: mergeSavedSettings(existing.settings)});
+          content = JSON.stringify(result.settings);
+        } else {
         if (!saveDirectory && window.showDirectoryPicker) await selectDirectory();
         const options = {id: 'tutor-closed-save', suggestedName: 'manual_closed_orders.json', types: [{description: '熄单记录', accept: {'application/json': ['.json']}}]};
         if (saveDirectory) options.startIn = saveDirectory;
@@ -120,6 +145,7 @@ document.addEventListener('click', async event => {
         const writable = await handle.createWritable();
         await writable.write(content);
         await writable.close();
+        }
         const written = JSON.parse(content);
         userState.rejection_feedback = written.rejection_feedback;
         userState.preference_overrides = written.preference_overrides;
@@ -130,7 +156,7 @@ document.addEventListener('click', async event => {
         userState.saved_preference_baseline = {...window.tutorPreferenceEditor?.baseline};
         persistUserState();
         document.dispatchEvent(new CustomEvent('tutor-settings-saved'));
-        feedback.textContent = '已保存熄单、反馈理由和偏好。文件需位于项目根目录，下次筛选生效。';
+        feedback.textContent = localSaveToken ? '已保存到当前项目，下次筛选生效。' : '已保存熄单、反馈理由和偏好。文件需位于项目根目录，下次筛选生效。';
       } else {
         const url = URL.createObjectURL(new Blob([content], {type: 'application/json'}));
         const link = document.createElement('a');
@@ -141,6 +167,7 @@ document.addEventListener('click', async event => {
         feedback.textContent = '已导出：请将文件保存到 当前项目 根目录，下次筛选永久生效。';
       }
     } catch (error) { feedback.textContent = error.name === 'AbortError' ? '已取消保存，浏览器标记仍保留。' : (error.userMessage || '保存失败，请重试。'); }
+    finally { saveInProgress = false; }
     return;
   }
   const feedbackButton = event.target.closest('.feedback-reject');

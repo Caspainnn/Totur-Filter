@@ -24,3 +24,5 @@ scheduled-once-result.json
 tutor-report.html
 ui-preview.html
 message-timing-analysis.json
+report-server.json
+.settings-*.tmp

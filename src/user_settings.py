@@ -179,7 +179,11 @@ def load_user_settings(path):
         return empty
     if path.stat().st_size > 2_000_000:
         raise RuntimeError('USER_SETTINGS_TOO_LARGE')
-    data = json.loads(path.read_text(encoding='utf-8-sig'))
+    return validate_user_settings(json.loads(path.read_text(encoding='utf-8-sig')))
+
+
+def validate_user_settings(data):
+    """Validate both existing files and local report save requests."""
     if not isinstance(data, dict):
         raise RuntimeError('INVALID_MANUAL_CLOSED_ORDERS')
     keys = data.get('closed_order_keys')
