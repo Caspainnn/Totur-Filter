@@ -66,6 +66,8 @@ def grade_stage(grade):
 def feedback_rows(raw):
     """Return original line positions and labelled values, never split prose."""
     rows = []
+    if len(re.findall(r'(?m)^\s*1[、.．]', raw)) >= 2 and len(re.findall(r'(?m)^\s*6[、.．]', raw)) >= 2:
+        return []  # Unsplit numeric batches must never create cross-order feedback.
     numbered = {int(match.group(1)): match.group(2) for match in re.finditer(r'(?m)^\s*([1-6])[、.．]\s*([^\n]+)', raw)}
     numeric_template = all(number in numbered for number in range(1, 7)) and bool(re.search(r'年级|初[一二三]|高[一二三]|幼儿园|\d岁', numbered[2]))
     for index, line in enumerate(raw.splitlines()):

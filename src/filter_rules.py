@@ -276,6 +276,7 @@ def extract_orders(message):
         return []
     headers = list(re.finditer(r'(?im)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*(?:(?:订单编号|订单号|编号)\s*[:：]?\s*(?:[^\u4e00-\u9fffA-Za-z0-9\n]|\[[A-Za-z]+\])*[\u4e00-\u9fffA-Za-z0-9-]+|bj\d{4,}|北京(?:家教|线下|线上|[A-Za-z]{0,4})\d{5,}[A-Za-z0-9-]*|[A-Z]\d{5,}\s*[:：]|【[^】]+】\d{5,})', text))
     extra_headers = list(re.finditer(r'家教编(?:单|号)\s*[:：]\s*\d{6,}', text))
+    extra_headers += list(re.finditer(r'(?m)^[ \t]*[\u4e00-\u9fff]{2,8}[A-Za-z]{1,4}\d{5,}[A-Za-z0-9-]*(?=[#＃\s]|$)', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*(?:[A-Z]{1,4}\d{6,}[ \t]*(?=\r?$)|\d{4,6}[（(]北京[^）)\n]{2,20}[）)])', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*\d{8}[ \t]*(?=\r?$)', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*[A-Za-z]{1,4}\d{3,}[ \t]*[#＃]', text))
@@ -293,8 +294,15 @@ def extract_orders(message):
         complete_blocks = all(complete_order_block(block) for block in blank_blocks)
         if len(blank_blocks) >= 2 and complete_blocks:
             parts = blank_blocks
+        numeric_starts = list(re.finditer(r'(?m)^[ \t]*1[、.．][ \t]*', text))
+        if len(numeric_starts) >= 2:
+            numeric_blocks = [text[m.start():numeric_starts[i + 1].start() if i + 1 < len(numeric_starts) else len(text)]
+                              for i, m in enumerate(numeric_starts)]
+            if all(complete_order_block(block) for block in numeric_blocks):
+                numeric_blocks[0] = text[:numeric_starts[0].start()] + numeric_blocks[0]
+                parts = numeric_blocks
         numbered = re.split(r'(?m)(?=^\s*\d+[.、)）]\s*(?:小学|小[一二三四五六123456]|初[中一二三123]|高[中一二三123]))', text)
-        if len([part for part in numbered if re.match(r'^\s*\d+[.、)）]', part)]) >= 2:
+        if len(parts) == 1 and len([part for part in numbered if re.match(r'^\s*\d+[.、)）]', part)]) >= 2:
             parts = [part for part in numbered if part.strip()]
         student_headers = list(re.finditer(r'(?m)^[ \t]*学员科目\s*[:：]', text))
         if len(student_headers) >= 2:
@@ -528,7 +536,8 @@ def classify_order(order, preferences):
     output['fields'] = {}
     rejected, pending = [], []
     # Never combine independently labelled offers into one preference decision.
-    if len(field_values(raw, PAY_LABELS)) >= 2 and (
+    if (len(re.findall(r'(?m)^\s*1[、.．]', order['raw'])) >= 2
+            and len(re.findall(r'(?m)^\s*6[、.．]', order['raw'])) >= 2) or len(field_values(raw, PAY_LABELS)) >= 2 and (
             len(field_values(raw, SUBJECT_LABELS)) >= 2
             or len(field_values(raw, ADDRESS_LABELS)) >= 2):
         output.update(status='parse_failed', reasons=['疑似包含多条订单，无法可靠拆分，需核对原文'])
@@ -707,6 +716,9 @@ def classify_order(order, preferences):
 
 
 def order_identifier(raw):
+    city_code = re.search(r'(?m)^[ \t]*([\u4e00-\u9fff]{2,8}[A-Za-z]{1,4}\d{5,}[A-Za-z0-9-]*)(?=[#＃\s]|$)', raw)
+    if city_code:
+        return city_code.group(1)
     offline = re.search(r'(?m)^[ \t]*(北京(?:家教|线下|线上)\d{5,}[A-Za-z0-9-]*)(?=\s|$)', raw)
     if offline:
         return offline.group(1)
