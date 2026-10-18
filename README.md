@@ -1,4 +1,4 @@
-# 家教筛客 · WeChat Tutor Filter
+# 家教筛客 · WeChat Tutor Filter-V1.0
 
 **少翻群消息，把时间留给值得接的家教。**
 
