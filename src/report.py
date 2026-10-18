@@ -281,7 +281,7 @@ def candidate_priority(order, address_keywords=()):
 
 def render_raw(order):
     annotations = {index: (field, value) for index, field, value in feedback_rows(order['raw'])}
-    if not annotations or order['status'] == 'closed':
+    if not annotations or order['status'] in ('closed', 'parse_failed'):
         return escape(order['raw'], quote=True)
     lines = []
     for index, line in enumerate(order['raw'].splitlines()):
@@ -298,7 +298,7 @@ def render_raw(order):
 def render_key_information(order, grade_label, price):
     """Summaries use extracted fields; feedback always keeps the exact source value."""
     fields = order['fields']
-    annotations = feedback_rows(order['raw']) if order['status'] != 'closed' else []
+    annotations = feedback_rows(order['raw']) if order['status'] not in ('closed', 'parse_failed') else []
     rows = [('学生年级', grade_label, None), ('科目', ' / '.join(fields.get('subjects') or []) or '未识别', 'subject'),
             ('上课时间', fields.get('schedule') or '未指定', 'frequency'), ('报价', price, 'pay'),
             ('教师要求', fields.get('teacher_requirements') or '未识别，需查看原文', 'teacher'),

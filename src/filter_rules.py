@@ -256,6 +256,12 @@ def requirements_known(requirement, profile, grade=None):
     return not re.sub(r'[\W_]+', '', remaining)
 
 
+def complete_order_block(text):
+    normalized = normalize_order(text)
+    return bool((field(normalized, GRADE_LABELS) or parse_grade(normalized)[0] is not None)
+                and field(normalized, SUBJECT_LABELS) and field(normalized, PAY_LABELS))
+
+
 def extract_orders(message):
     source = {key: message[key] for key in ('id', 'group_name', 'timestamp')}
     text = message.get('content', '')
@@ -268,7 +274,7 @@ def extract_orders(message):
         return []  # Known system messages are not orders.
     if kind == 1 and text.strip() and not re.search(r'家教|辅导|接课|订单|编号|招聘|老师|年级|初[一二三123]|小[一二三四五六123456]|全科|时薪|报酬|课费|' + '|'.join(re.escape(s) for s in SUBJECTS), text):
         return []
-    headers = list(re.finditer(r'(?im)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*(?:(?:订单编号|订单号|编号)\s*[:：]?\s*(?:[^\u4e00-\u9fffA-Za-z0-9\n]|\[[A-Za-z]+\])*[\u4e00-\u9fffA-Za-z0-9-]+|bj\d{4,}|北京(?:家教|线下|线上|[A-Za-z]{0,4})\d{6,}(?:-\d+)?|[A-Z]\d{5,}\s*[:：]|【[^】]+】\d{5,})', text))
+    headers = list(re.finditer(r'(?im)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*(?:(?:订单编号|订单号|编号)\s*[:：]?\s*(?:[^\u4e00-\u9fffA-Za-z0-9\n]|\[[A-Za-z]+\])*[\u4e00-\u9fffA-Za-z0-9-]+|bj\d{4,}|北京(?:家教|线下|线上|[A-Za-z]{0,4})\d{5,}[A-Za-z0-9-]*|[A-Z]\d{5,}\s*[:：]|【[^】]+】\d{5,})', text))
     extra_headers = list(re.finditer(r'家教编(?:单|号)\s*[:：]\s*\d{6,}', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*(?:[A-Z]{1,4}\d{6,}[ \t]*(?=\r?$)|\d{4,6}[（(]北京[^）)\n]{2,20}[）)])', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*\d{8}[ \t]*(?=\r?$)', text))
@@ -284,11 +290,7 @@ def extract_orders(message):
     else:
         parts = [text]
         blank_blocks = [block for block in re.split(r'(?:\r?\n)[ \t\r]*(?:\r?\n)+', text) if block.strip()]
-        complete_blocks = all(
-            field(normalize_order(block), GRADE_LABELS)
-            and field(normalize_order(block), SUBJECT_LABELS)
-            and field(normalize_order(block), PAY_LABELS)
-            for block in blank_blocks)
+        complete_blocks = all(complete_order_block(block) for block in blank_blocks)
         if len(blank_blocks) >= 2 and complete_blocks:
             parts = blank_blocks
         numbered = re.split(r'(?m)(?=^\s*\d+[.、)）]\s*(?:小学|小[一二三四五六123456]|初[中一二三123]|高[中一二三123]))', text)
@@ -303,7 +305,7 @@ def extract_orders(message):
         addresses = list(re.finditer(r'(?m)^[ \t]*(?:【(?:' + ADDRESS_LABELS + r')】\s*[:：]?|(?:' + ADDRESS_LABELS + r')\s*[:：])', part))
         if len(addresses) >= 2:
             blocks = [part[m.start():addresses[i + 1].start() if i + 1 < len(addresses) else len(part)] for i, m in enumerate(addresses)]
-            complete = all(field(normalize_order(block), GRADE_LABELS) and field(normalize_order(block), SUBJECT_LABELS) and field(normalize_order(block), PAY_LABELS) for block in blocks)
+            complete = all(complete_order_block(block) for block in blocks)
             if complete:
                 blocks[0] = part[:addresses[0].start()] + blocks[0]
                 isolated.extend(blocks)
@@ -525,6 +527,12 @@ def classify_order(order, preferences):
     output['fingerprint'] = hashlib.sha256(identity.encode()).hexdigest()
     output['fields'] = {}
     rejected, pending = [], []
+    # Never combine independently labelled offers into one preference decision.
+    if len(field_values(raw, PAY_LABELS)) >= 2 and (
+            len(field_values(raw, SUBJECT_LABELS)) >= 2
+            or len(field_values(raw, ADDRESS_LABELS)) >= 2):
+        output.update(status='parse_failed', reasons=['疑似包含多条订单，无法可靠拆分，需核对原文'])
+        return output
     if kind != 1 or not raw:
         pending.append('非文本或内容不可解析，需查看微信原消息')
         output.update(status='needs_confirmation', reasons=pending)
@@ -699,6 +707,9 @@ def classify_order(order, preferences):
 
 
 def order_identifier(raw):
+    offline = re.search(r'(?m)^[ \t]*(北京(?:家教|线下|线上)\d{5,}[A-Za-z0-9-]*)(?=\s|$)', raw)
+    if offline:
+        return offline.group(1)
     labelled = re.search(r'(?:家教编号|家教编单|订单编号|订单号|编号)\s*[:：]\s*(?:[^\u4e00-\u9fffA-Za-z0-9\n]|\[[A-Za-z]+\])*([A-Za-z\u4e00-\u9fff]*\d+[A-Za-z0-9-]*)', raw)
     if labelled:
         return labelled.group(1)
