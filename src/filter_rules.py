@@ -258,8 +258,10 @@ def requirements_known(requirement, profile, grade=None):
 
 def complete_order_block(text):
     normalized = normalize_order(text)
+    subject = field(normalized, SUBJECT_LABELS) or re.search(
+        '|'.join(re.escape(s) for s in SUBJECTS) + r'|全科|理科|陪学|陪玩', subject_text_of(normalized))
     return bool((field(normalized, GRADE_LABELS) or parse_grade(normalized)[0] is not None)
-                and field(normalized, SUBJECT_LABELS) and field(normalized, PAY_LABELS))
+                and subject and field(normalized, PAY_LABELS))
 
 
 def extract_orders(message):
@@ -276,6 +278,7 @@ def extract_orders(message):
         return []
     headers = list(re.finditer(r'(?im)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*(?:(?:订单编号|订单号|编号)\s*[:：]?\s*(?:[^\u4e00-\u9fffA-Za-z0-9\n]|\[[A-Za-z]+\])*[\u4e00-\u9fffA-Za-z0-9-]+|bj\d{4,}|北京(?:家教|线下|线上|[A-Za-z]{0,4})\d{5,}[A-Za-z0-9-]*|[A-Z]\d{5,}\s*[:：]|【[^】]+】\d{5,})', text))
     extra_headers = list(re.finditer(r'家教编(?:单|号)\s*[:：]\s*\d{6,}', text))
+    extra_headers += list(re.finditer(r'(?m)^[ \t]*[\u4e00-\u9fff]{2,8}(?:线下|线上)[ \t]*(?=\r?$)', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*[\u4e00-\u9fff]{2,8}[A-Za-z]{1,4}\d{5,}[A-Za-z0-9-]*(?=[#＃\s]|$)', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*(?:[A-Z]{1,4}\d{6,}[ \t]*(?=\r?$)|\d{4,6}[（(]北京[^）)\n]{2,20}[）)])', text))
     extra_headers += list(re.finditer(r'(?m)^[ \t]*[^\u4e00-\u9fffA-Za-z0-9\n]*\d{8}[ \t]*(?=\r?$)', text))
@@ -536,10 +539,10 @@ def classify_order(order, preferences):
     output['fields'] = {}
     rejected, pending = [], []
     # Never combine independently labelled offers into one preference decision.
-    if (len(re.findall(r'(?m)^\s*1[、.．]', order['raw'])) >= 2
+    if len(re.findall(r'(?m)^[ \t]*[\u4e00-\u9fff]{2,8}(?:线下|线上)[ \t]*(?=\r?$)', order['raw'])) >= 2 or (len(re.findall(r'(?m)^\s*1[、.．]', order['raw'])) >= 2
             and len(re.findall(r'(?m)^\s*6[、.．]', order['raw'])) >= 2) or len(field_values(raw, PAY_LABELS)) >= 2 and (
             len(field_values(raw, SUBJECT_LABELS)) >= 2
-            or len(field_values(raw, ADDRESS_LABELS)) >= 2):
+            or len(field_values(raw, ADDRESS_LABELS)) >= 2 or parse_grade(raw)[1]):
         output.update(status='parse_failed', reasons=['疑似包含多条订单，无法可靠拆分，需核对原文'])
         return output
     if kind != 1 or not raw:
