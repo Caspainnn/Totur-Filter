@@ -306,11 +306,16 @@ def render_key_information(order, grade_label, price):
     rendered = []
     for label, value, field in rows:
         buttons = []
-        for _, source_field, source_value in annotations:
-            if source_field == field and len(source_value) <= 2000:
-                reason = FEEDBACK_FIELDS[field][0]
-                buttons.append(f'<button type="button" class="feedback-reject" data-feedback-field="{field}" data-feedback-value="{escape(source_value, quote=True)}" data-feedback-reason="{reason}">{reason}</button>')
-        rendered.append(f'<div class="key-row"><span class="key-label">{label}</span><span class="key-value">{escape(str(value), quote=True)}</span><span class="key-feedback">{"".join(buttons)}</span></div>')
+        values = dict.fromkeys(source_value for _, source_field, source_value in annotations
+                               if source_field == field and len(source_value) <= 2000)
+        for source_value in values:
+            reason = FEEDBACK_FIELDS[field][0]
+            caption = source_value if len(values) > 1 else reason
+            buttons.append(f'<button type="button" class="feedback-reject" data-feedback-field="{field}" data-feedback-value="{escape(source_value, quote=True)}" data-feedback-reason="{reason}">{escape(caption, quote=True)}</button>')
+        actions = ''.join(buttons)
+        if len(values) > 1:
+            actions = f'<details class="feedback-options"><summary>{reason}（{len(values)}项）</summary><p>选择要排除的原文内容：</p>{actions}</details>'
+        rendered.append(f'<div class="key-row"><span class="key-label">{label}</span><span class="key-value">{escape(str(value), quote=True)}</span><div class="key-feedback">{actions}</div></div>')
     return '<details class="key-information" open><summary>关键信息</summary>' + ''.join(rendered) + '</details>'
 
 
