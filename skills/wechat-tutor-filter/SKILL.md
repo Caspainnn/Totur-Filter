@@ -12,7 +12,7 @@ description: 在 Windows 本地部署和运行家教筛客，按用户偏好筛�
 | GitHub Agent 源码版 | 完整仓库中的 `scripts/run_once_scheduled.ps1` 与 `src.report_server` | 项目配置、报告及本机应用数据 |
 | Windows 一键运行版 | 已取得的完整 ZIP 解压后启动 `家教筛客.exe` | 应用界面配置，数据在 `%LOCALAPPDATA%\WeChatTutorFilter\Desktop` |
 
-只有仓库网址时，按源码版引导部署并交付报告。用户已有桌面程序包时，按[桌面版升级和验收](references/deployment.md#桌面版升级和验收)操作。以当前分支的文件和实际取得的安装包确认能力。V1.0.6 的桌面兼容记录只适用于对应程序包。
+只有仓库网址时，按源码版引导部署并交付报告。用户已有桌面程序包时，按[桌面版升级和验收](references/deployment.md#桌面版升级和验收)操作。以当前分支的文件和实际取得的安装包确认能力。使用微信 Windows 4.2.0.52 时，选用已通过授权群读取验证的家教筛客 Windows 一键运行版 V1.0.7。
 
 两版在首次读取前都需要确认用户知悉账号风险、选择账号和授权群。桌面版在界面填写偏好、授权群和地图设置。以下配置文件、命令、手动保存与调度说明适用于 Agent 源码版。
 
